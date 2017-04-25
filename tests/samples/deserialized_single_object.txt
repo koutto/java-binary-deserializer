@@ -1,0 +1,2 @@
+{0: ('object',
+     u'<TcpPayload>\n  <int1>123</int1>\n  <float1>-90.05</float1>\n  <double1>55.055</double1>\n  <short1>59</short1>\n  <str1>I am a String payload.</str1>\n  <long1>-23895901</long1>\n  <char1>x</char1>\n</TcpPayload>')}
