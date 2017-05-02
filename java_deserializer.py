@@ -130,6 +130,13 @@ if args.deserialize:
 	PrintUtils.print_info('Scanning input for Java Serialized data and try to deserialize it...')
 	output = deserializer.execute()
 
+	# Output into file
+	if args.output_file and output:
+		if FileUtils.write_pprint_to_file(args.output_file.strip(), output):
+			PrintUtils.print_success('Output written into file "{0}"'.format(args.output_file))
+		else:
+			PrintUtils.print_error('An error occured when writing to file. Check permissions')
+
 	
 elif args.serialize:
 	PrintUtils.print_title('Java Serialization')
@@ -143,12 +150,30 @@ elif args.serialize:
 
 	output = serializer.execute()
 
+	
+	# Output into file
+	if args.output_file and output:
+		if FileUtils.write_to_file(args.output_file.strip(), output):
+			PrintUtils.print_success('Output written into file "{0}"'.format(args.output_file))
+		else:
+			PrintUtils.print_error('An error occured when writing to file. Check permissions')
 
-# Output into file
-if args.output_file and output:
-	if FileUtils.write_pprint_to_file(args.output_file.strip(), output):
-		PrintUtils.print_success('Output written into file "{0}"'.format(args.output_file))
-	else:
-		PrintUtils.print_error('An error occured when writing to file. Check permissions')
+
+if args.rpcserver:
+	try:
+		server = SimpleXMLRPCServer(("", args.port), requestHandler=RequestHandler)
+		server.register_introspection_functions()
+		server.register_instance(RPCServer())
+	except:
+		PrintUtils.print_error('Error occured when trying to start RPC server. Check if port already used.')
+		sys.exit(0)
+
+	PrintUtils.print_title('RPC Server: ON - Waiting for calls...')
+	print
+	signal.signal(signal.SIGINT, signal_handler)
+	PrintUtils.print_info('Press Ctrl+C to stop the server')
+	print
+	server.serve_forever()
+
 
 print
