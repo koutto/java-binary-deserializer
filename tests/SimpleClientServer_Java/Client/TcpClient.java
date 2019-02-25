@@ -15,8 +15,8 @@ import java.net.UnknownHostException;
 
 public class TcpClient
 {
-    public final static String SERVER_HOSTNAME = "192.168.142.160";
-    public final static int COMM_PORT = 5050;  // socket port for client comms
+    //public final static String SERVER_HOSTNAME = "192.168.142.160";
+    //public final static int COMM_PORT = 5050;  // socket port for client comms
 
     private Socket socket;
     private TcpPayload payload;
@@ -34,11 +34,11 @@ public class TcpClient
     private short recv12;
 
     /** Default constructor. */
-    public TcpClient()
+    public TcpClient(String serverIp, int serverPort)
     {
         try
         {
-            this.socket = new Socket(SERVER_HOSTNAME, COMM_PORT);
+            this.socket = new Socket(serverIp, serverPort);
             InputStream iStream = this.socket.getInputStream();
             ObjectInputStream oiStream = new ObjectInputStream(iStream);
             this.payload = (TcpPayload) oiStream.readObject();
@@ -73,13 +73,13 @@ public class TcpClient
         }
         catch (UnknownHostException uhe)
         {
-            System.out.println("Don't know about host: " + SERVER_HOSTNAME);
+            System.out.println("Don't know about host: " + serverIp);
             System.exit(1);
         }
         catch (IOException ioe)
         {
             System.out.println("Couldn't get I/O for the connection to: " +
-                SERVER_HOSTNAME + ":" + COMM_PORT);
+                serverIp + ":" + serverPort);
             System.exit(1);
         }
         catch(ClassNotFoundException cne)
@@ -108,6 +108,6 @@ public class TcpClient
      */
     public static void main(String[] args)
     {
-        TcpClient tcpclient = new TcpClient();
+        TcpClient tcpclient = new TcpClient(args[0], Integer.parseInt(args[1]));
     }
 }

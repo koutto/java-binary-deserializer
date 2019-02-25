@@ -36,6 +36,7 @@ public class TcpServer
                 OutputStream oStream = sock.getOutputStream();
                 ObjectOutputStream ooStream = new ObjectOutputStream(oStream);
                 
+                System.out.println("SERVER received connection from client, sending payload... ");
                 ooStream.writeObject(this.payload);  // send serilized payload
 
                 // void write(byte[] buf)

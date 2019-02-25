@@ -1,93 +1,92 @@
+# -*- coding: utf-8 -*-
 import os
 import platform
-import ast
 import struct
 from lib import *
 if 'java' in platform.system().lower():
-	import java.io as io
-	from com.thoughtworks.xstream import XStream
+    import java.io as io
+    from com.thoughtworks.xstream import XStream
 
 
 class Serializer(object):
-	
-	def __init__(self, filename):
-		self.filename 	= filename.strip()
-		self.length 	= os.stat(filename).st_size
-		self.input  	= open(self.filename, 'r').read()
-		self.output 	= ''
+    
+    def __init__(self, input_):
+        """
+        :param input_: Data that must be serialized
+        Must be a list of tuples (type, data) where:
+            - type can be:
+                - object: for deserialized Java object
+                - block: raw data corresponding to primitive types (boolean, byte, char...)
+            - data is XML structure of Java Object when type = object, otherwise the raw data
+        """
+        self.input = input_
+        self.output = ''
 
 
-	def execute(self):
-		"""
-		Serialize input data into Java serialized data
-		"""
-		data = dict()
-		try:
-			data = ast.literal_eval(self.input)
-		except Exception:
-			PrintUtils.print_error('Input data is malformed')
-			return False
+    def execute(self):
+        """
+        Serialize input data into Java serialized data
+        :return: Serialized data raw bytes
+        """
+        print self.input
 
-		if not data:
-			PrintUtils.print_error('Empty input data')
-			return False
+        self.serializeData()
+        if self.output:
+            PrintUtils.print_success('Data serialized with success - length = {length} (0x{length:x}) bytes'.format(length=len(self.output)))
+            print
+            self.printSerializedData()
+        else:
+            PrintUtils.print_error('No data has been serialized')
 
-		#print data
-
-		self.serializeData(data)
-		if self.output:
-			PrintUtils.print_success('Data serialized with success - length = {0} (0x{1:x}) bytes'.format(len(self.output), len(self.output)))
-			print
-			self.printSerializedData()
-			return self.output
-		else:
-			PrintUtils.print_error('No data serialized')
-			return ''
+        return self.output
 
 
-	def serializeData(self, data):
-		"""
-		Serialize data
-		@Args 	data: 	The Java serialized data
-		"""
-		self.output = '\xAC\xED\x00\x05'
+    def serializeData(self):
+        """
+        Serialize data, put the result inside self.output
+        """
+        self.output = '\xAC\xED\x00\x05'
 
-		for i in data.keys():
-			# Object
-			if data[i][0] == 'object':
+        for type_,data in self.input:
+            print type_
+            print data
+            print len(data)
 
-				# Create XStream object and create Java object from the XML structure
-				xs = XStream()
-				serialized = xs.fromXML(data[i][1])
+            if type_ == 'object':
 
-				# Serialize created object with ObjectOutputStream
-				bos = io.ByteArrayOutputStream()
-				oos = io.ObjectOutputStream(bos)
-				oos.writeObject(serialized)
+                # Create XStream object and create Java object from the XML structure
+                xs = XStream()
+                serialized = xs.fromXML(data)
 
-				self.output += bos.toByteArray()[4:]
+                # Serialize created object with ObjectOutputStream
+                bos = io.ByteArrayOutputStream()
+                oos = io.ObjectOutputStream(bos)
+                oos.writeObject(serialized)
 
-			# TC_BLOCKDATA = (byte)0x77
-			elif data[i][0] == 'block' and len(data[i][1]) <= 0xff:
-				self.output += '\x77'
-				self.output += struct.pack('<B', len(data[i][1])) # length on 1 byte
-				self.output += data[i][1]
+                self.output += bos.toByteArray()[4:]
 
-			# TC_BLOCKDATALONG = (byte)0x7A
-			else:
-				self.output += '\x7A'
-				self.output += struct.pack('>I', len(data[i][1])) # length on 4 bytes (big endian)
-				self.output += data[i][1]
+            elif type_ == 'block':
+                
+                # TC_BLOCKDATA = (byte)0x77
+                if len(data) <= 0xff:
+                    self.output += '\x77'
+                    self.output += struct.pack('<B', len(data)) # length on 1 byte
+
+                # TC_BLOCKDATALONG = (byte)0x7A
+                else:
+                    self.output += '\x7A'
+                    self.output += struct.pack('>I', len(data)) # length on 4 bytes (big endian)
+                
+                self.output += ''.join(list(map(lambda x: chr(int(x, 16)), data)))
 
 
-	def printSerializedData(self):
-		"""
-		Print serialized data in the terminal
-		"""
-		if len(self.output) == 0:
-			PrintUtils.print_error('No serialized data to print')
-			return
+    def printSerializedData(self):
+        """
+        Print serialized data in the terminal
+        """
+        if len(self.output) == 0:
+            PrintUtils.print_error('No serialized data to print')
+            return
 
-		PrintUtils.print_delimiter()
-
-		PrintUtils.hexdump(self.output)
+        PrintUtils.print_delimiter()
+        PrintUtils.hexdump(self.output)
